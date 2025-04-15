@@ -1,0 +1,13 @@
+[project]
+name = "ocr-worker"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "celery>=5.5.1",
+    "pero-ocr",
+]
+
+[tool.uv.sources]
+pero-ocr = { url = "https://github.com/jchazalon/pero-ocr/archive/refs/heads/master.zip" }

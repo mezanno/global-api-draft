@@ -18,4 +18,8 @@
         # reverse proxy
         reverse_proxy worker-wrapper:8000
     }
+
+    route /ocr* {
+        reverse_proxy api-ocr:8000
+    }
 }
