@@ -1,0 +1,21 @@
+:80 {
+
+    route /favicon.ico {
+        respond "" 204
+    }
+
+    route /layout* {
+
+        # FIXME only allow image_url pointing to known services.
+
+        # Prevent evident attacks when asking the worker to connect to local services
+        uri query image_url ^https?://(localhost|127\.0\.0\.1|cache|worker|10\..*|192\.168\..*|172\.(1[6-9]|2[0-9]|3[0-1])\..*)/.* ""
+
+        # Inject cache usage for known urls
+        uri query image_url ^https://openapi\.bnf\.fr/(.*) http://cache/openapi.bnf.fr/$1
+        # add more rules if needed for allowed services
+        
+        # reverse proxy
+        reverse_proxy worker-wrapper:8000
+    }
+}
