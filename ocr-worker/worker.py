@@ -11,9 +11,10 @@ import numpy as np
 CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]  # 'amqp://rabbitmq:rabbitmq@rabbit:5672/'
 CELERY_RESULT_BACKEND = os.environ["CELERY_RESULT_BACKEND"]  # 'rpc://'
 
+VALID_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 # PERO configuration
-PERO_CONFIG_DIR = os.environ["PERO_CONFIG_DIR"]
+# PERO_CONFIG_DIR = os.environ["PERO_CONFIG_DIR"]
 
 # Initialize Celery
 celery = Celery("worker", broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND) # 'ocr_worker', 
@@ -34,8 +35,8 @@ def run_ocr(image_url, image_regions):
 
     # Check if the image data is None
     # or if the content type is not image/jpg
-    if r.headers.get('Content-Type') != 'image/jpeg':
-        return {"error": "Request does not contain a valid image."}
+    if r.headers.get('Content-Type') not in VALID_IMAGE_TYPES:
+        return {"error": "Request does not contain a valid image. Valid types are: " + ", ".join(VALID_IMAGE_TYPES)}
     if image_data is None:
         return {"error": "Request contains no image data."}
     

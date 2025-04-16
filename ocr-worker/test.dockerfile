@@ -1,5 +1,6 @@
 FROM python:3.9-slim-bullseye
 
+
 # Install uv
 # ---------------------------------------------------------------------
 COPY --from=ghcr.io/astral-sh/uv@sha256:2381d6aa60c326b71fd40023f921a0a3b8f91b14d5db6b90402e65a635053709 /uv /uvx /bin/
@@ -7,9 +8,17 @@ COPY --from=ghcr.io/astral-sh/uv@sha256:2381d6aa60c326b71fd40023f921a0a3b8f91b14
 
 # Install project dependencies
 # ---------------------------------------------------------------------
-# ENV LC_ALL=C
-WORKDIR /app
+# System dependencies
 
+# For OpenCV
+RUN --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && \
+    apt-get install -y \
+        libgl1 \
+        libglib2.0-0
+#  --no-install-recommends
+
+# Python dependencies
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
 
@@ -21,6 +30,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-dev
+
 
 
 # Install project files
@@ -38,6 +48,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ---------------------------------------------------------------------
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
+
+# ENV LC_ALL=C
+WORKDIR /app
+
+# Declare volumes?
+# ---------------------------------------------------------------------
+# torch cache and pero models path
 
 
 # Configure runtime environment
