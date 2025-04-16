@@ -1,6 +1,6 @@
 import os
 
-from pero_ocr_driver import PERO_driver
+# from pero_ocr_driver import PERO_driver
 
 from celery import Celery
 import cv2
@@ -22,11 +22,6 @@ celery.config_from_object('celeryconfig')
 # Define our OCR task
 @celery.task()
 def run_ocr(image_url, image_regions):
-    # Fake response to test
-    return {
-        "image_url": image_url,
-        "image_regions": image_regions,
-    }
 
     ## FIXME take image url and regions as input
     ## Parse and validate with Pydantic
@@ -57,9 +52,16 @@ def run_ocr(image_url, image_regions):
     if image_data is None:
         return {"error": "Request contains no image data."}
 
+    # Fake response to test
+    return {
+        "image_url": image_url,
+        "image_regions": image_regions,
+        "image_shape": image_numpy.shape,
+    }
 
-    ocr_engine = PERO_driver(PERO_CONFIG_DIR)
-    # TODO loop over image regions
-    ocr_results = ocr_engine.detect_and_recognize(image_numpy)
-    ocr_results = "\n".join([textline.transcription for textline in ocr_results])
-    return {"content": ocr_results}
+
+    # ocr_engine = PERO_driver(PERO_CONFIG_DIR)
+    # # TODO loop over image regions
+    # ocr_results = ocr_engine.detect_and_recognize(image_numpy)
+    # ocr_results = "\n".join([textline.transcription for textline in ocr_results])
+    # return {"content": ocr_results}

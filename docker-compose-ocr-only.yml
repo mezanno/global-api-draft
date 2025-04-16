@@ -25,7 +25,8 @@ services:
   ocr-worker:
     build:
       context: ocr-worker
-      dockerfile: Dockerfile
+      dockerfile: test.dockerfile
+      # dockerfile: Dockerfile
     command: [celery, --app=worker.celery, worker, --concurrency=1, -P, threads, --loglevel=INFO]
     environment: 
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
