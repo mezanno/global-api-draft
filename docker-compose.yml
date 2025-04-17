@@ -21,8 +21,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8202:8000"
-    networks:
-      - app-network
+  
   layout-worker:
     build:
       context: layout-worker
