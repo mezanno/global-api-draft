@@ -24,8 +24,9 @@ services:
       - "8203:8000"
     deploy:
       replicas: 3
-      constraints:
-        - node.role == worker
+      placement:
+        constraints:
+          - node.role == worker
 
   api-ocr:
     image: mezanno-api-ocr:v20250417-1230
@@ -54,8 +55,9 @@ services:
       - pero-models:/data/pero_ocr
     deploy:
       replicas: 3
-      constraints:
-        - node.role == worker
+      placement:
+        constraints:
+          - node.role == worker
 
   rabbitmq:
     image: rabbitmq:3.7.8

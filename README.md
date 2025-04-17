@@ -65,7 +65,10 @@ parallel --tag scp {1} {2}:{1} ::: tmp/mezanno-images/mezanno*-${MZN_TAG}.tar.gz
 
 # Import images
 parallel --tag ssh {} 'docker image ls' ::: $MZN_WORKER_SRV
-parallel --tag ssh {2} 'docker load < {1}' ::: tmp/mezanno-images/*-${MZN_TAG}.tar.gz ::: $MZN_WORKER_SRV
+parallel --tag ssh {2} 'docker load < {1}' ::: tmp/mezanno-images/mezanno*-${MZN_TAG}.tar.gz ::: $MZN_WORKER_SRV
+
+# or
+ansible all -m shell -i hosts-ssh  -a 'for img in tmp/mezanno-images/mezanno*.tar.gz ; do echo "docker load < $img" ; done'
 
 ```
 
