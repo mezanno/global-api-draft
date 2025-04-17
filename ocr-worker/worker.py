@@ -42,7 +42,7 @@ VALID_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 # PERO configuration
 PERO_CONFIG_DIR = os.environ["PERO_CONFIG_DIR"]
 PERO_MODEL_VERSION = os.path.basename(PERO_CONFIG_DIR)
-PERO_CODE_VERSION = "Jul 21, 2023, https://github.com/jchazalon/pero-ocr/commit/223d5458c7e7a546a7ea3e3b69168d86b7057873"
+PERO_CODE_VERSION = "https://github.com/DCGM/pero-ocr?rev=57c07b1d192859bc4ec71859769d4f624c50dbfc"
 
 # Initialize Celery
 celery = Celery("worker", broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND) # 'ocr_worker', 
