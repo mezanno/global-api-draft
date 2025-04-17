@@ -27,6 +27,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+        max_replicas_per_node: 1
 
   api-ocr:
     image: mezanno-api-ocr:v20250417-1557
@@ -58,6 +59,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+        max_replicas_per_node: 1
 
   rabbitmq:
     image: rabbitmq:3.7.8
