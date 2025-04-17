@@ -58,10 +58,12 @@ ssh $MZN_SRV mkdir -p tmp/mezanno-images
 scp ~/tmp/mezanno-images/*.tar.gz $MZN_SRV:tmp/mezanno-images
 
 # Distribute among worker server
-# ...
+export MZN_WORKER_SRV=???
+# ssh $MZN_SRV
+# cd tmp/mezanno-images
+parallel --tag scp {1} {2}:{1} ::: tmp/mezanno-images/mezanno*-${MZN_TAG}.tar.gz ::: $MZN_WORKER_SRV
 
 # Import images
-export MZN_WORKER_SRV=???
 parallel --tag ssh {} 'docker image ls' ::: $MZN_WORKER_SRV
 parallel --tag ssh {2} 'docker load < {1}' ::: tmp/mezanno-images/*-${MZN_TAG}.tar.gz ::: $MZN_WORKER_SRV
 
@@ -69,3 +71,6 @@ parallel --tag ssh {2} 'docker load < {1}' ::: tmp/mezanno-images/*-${MZN_TAG}.t
 
 Then copy the docker swarm compose file, and run all the services.
 
+```shell
+docker stack deploy -c docker-compose-swarm.yml mezanno-api
+```

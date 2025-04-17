@@ -76,5 +76,15 @@ services:
 
 volumes:
   nginx-cache:
+    driver: local
+    driver_opts:
+      type: none
+      device: /work/mezanno/nginx-cache
+      o: bind
   pero-models:
+    driver: local
+    driver_opts:
+      type: none
+      device: /work/mezanno/pero-models
+      o: bind
 
