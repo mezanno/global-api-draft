@@ -2,24 +2,24 @@ version: "3.8"
 
 services:
   api-gateway:
-    image: mezanno-api-gateway:v20250417-1230
+    image: mezanno-api-gateway:v20250417-1557
     ports:
       - "8200:80"
 
   cache:
-    image: mezanno-cache:v20250417-1230
+    image: mezanno-cache:v20250417-1557
     volumes:
       - nginx-cache:/var/cache/nginx
     ports:
       - "8201:80"
 
   layout-worker-wrapper:
-    image: mezanno-layout-worker-wrapper:v20250417-1230
+    image: mezanno-layout-worker-wrapper:v20250417-1557
     ports:
       - "8202:8000"
 
   layout-worker:
-    image: mezanno-layout-worker:v20250417-1230
+    image: mezanno-layout-worker:v20250417-1557
     ports:
       - "8203:8000"
     deploy:
@@ -29,7 +29,7 @@ services:
           - node.role == worker
 
   api-ocr:
-    image: mezanno-api-ocr:v20250417-1230
+    image: mezanno-api-ocr:v20250417-1557
     command: ["uv", "run", "main_api_ocr.py"]
     ports:
       - "8204:8000"
@@ -44,7 +44,7 @@ services:
       - rabbitmq
 
   ocr-worker:
-    image: mezanno-ocr-worker:v20250417-1230
+    image: mezanno-ocr-worker:v20250417-1557
     command: /bin/sh -c '/app/startup.sh uv run celery --app=worker.celery worker --concurrency=1 -P threads --loglevel=INFO'
     environment: 
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
