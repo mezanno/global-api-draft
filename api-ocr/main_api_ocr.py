@@ -45,13 +45,13 @@ class OCRAPIAnswer(BaseModel):
 
 class OCRProxy:
     """Proxy to real workers."""
-    def __init__(self, celeryapp: Celery, task_timeout_sec: int = 30, task_initial_backoff_sec: float = 0.5):
+    def __init__(self, celeryapp: Celery, task_timeout_sec: int = 30, task_initial_backoff_sec: float = 0.5, use_image_cache:bool = True):
         self._celeryapp = celeryapp
 
         self._task_timeout_sec = task_timeout_sec
         self._task_initial_backoff_sec = task_initial_backoff_sec
 
-        self._ocr_engine_info = None
+        self._use_image_cache = use_image_cache
 
 
     # async def transcribe(self, image_url: str, regions: Regions, mode: OCRMode = "block"):
@@ -67,6 +67,9 @@ class OCRProxy:
                 error=f"Invalid image URL: {e}"
             ).model_dump()
 
+        # If the URL starts with https?://openapi.bnf.fr/*, rewrite it to http://cache/openapi.bnf.fr/*
+        if self._use_image_cache and image_url.startswith("https://openapi.bnf.fr/iiif/image/v3/"):
+            image_url = image_url.replace("https://openapi.bnf.fr/iiif/image/v3/", "http://cache.mezanno.xyz/openapi.bnf.fr/iiif/image/v3/")
 
         # Validate `regions` input by parsing it with Pydantic
         try:
@@ -120,6 +123,7 @@ def main():
     GRADIO_SERVER_PORT = os.environ.get("GRADIO_SERVER_PORT", 7860)
     GRADIO_SERVER_NAME = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
     GRADIO_CONCURRENCY_LIMIT = os.environ.get("GRADIO_CONCURRENCY_LIMIT", 1)
+    GRADIO_ROOT_PATH = os.environ.get("GRADIO_ROOT_PATH", "")
     TASK_TIMEOUT_SEC = os.environ.get("TASK_TIMEOUT_SEC", 30)
     TASK_INITIAL_BACKOFF_SEC = os.environ.get("TASK_INITIAL_BACKOFF_SEC", 0.5)
     CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "amqp://rabbitmq:rabbitmq@rabbit:5672/")
@@ -134,6 +138,8 @@ def main():
                         help="Port for Gradio server")
     parser.add_argument("--gradio_server_name", default=GRADIO_SERVER_NAME, type=str,
                         help="Name for Gradio server")
+    parser.add_argument("--gradio_root_path", default=GRADIO_ROOT_PATH, type=str,
+                        help="Root path for Gradio server")
     parser.add_argument("--task_timeout_sec", default=TASK_TIMEOUT_SEC, type=int,
                         help="Timeout for task in seconds")
     parser.add_argument("--task_initial_backoff_sec", default=TASK_INITIAL_BACKOFF_SEC, type=float,
@@ -193,7 +199,7 @@ def main():
     logger.info(f"Task initial backoff: {args.task_initial_backoff_sec} seconds")
 
     # Launch the Gradio app
-    demo.launch(share=False)
+    demo.launch(share=False, root_path=args.gradio_root_path)
 
 if __name__ == "__main__":
     main()
