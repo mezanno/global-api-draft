@@ -102,7 +102,7 @@ class PERO_driver():
                     # "heights": line.heights,
                     "transcription": line.transcription,
                     # "logits": line.logits,
-                    "transcription_confidence": line.transcription_confidence,
+                    "transcription_confidence": float(line.transcription_confidence),
                 } for line in lines
             ]
 
