@@ -48,20 +48,20 @@ The **OCR service** is different: it requires long tasks which are queued in a 2
 02-docker_images_tag.sh
 
 docker image ls | grep mezanno
-# note the tag you want to use, e.g, v20250417-1230
+# note the tag you want to use, e.g, v20250417-1557
 export MZN_TAG=???
 03-docker_image_save.sh $MZN_TAG
 
 # Copy images to server(s) --- should use some registry here
 export MZN_SRV=???
 ssh $MZN_SRV mkdir -p tmp/mezanno-images
-scp ~/tmp/mezanno-images/*.tar.gz $MZN_SRV:tmp/mezanno-images
+rsync -avih ~/tmp/mezanno-images/mezanno*-${MZN_TAG}.tar.gz $MZN_SRV:tmp/mezanno-images
 
 # Distribute among worker server
 export MZN_WORKER_SRV=???
 # ssh $MZN_SRV
 # cd tmp/mezanno-images
-parallel --tag scp {1} {2}:{1} ::: tmp/mezanno-images/mezanno*-${MZN_TAG}.tar.gz ::: $MZN_WORKER_SRV
+parallel --tag rsync {1} {2}:{1} ::: tmp/mezanno-images/mezanno*-${MZN_TAG}.tar.gz ::: $MZN_WORKER_SRV
 
 # Import images
 parallel --tag ssh {} 'docker image ls' ::: $MZN_WORKER_SRV
