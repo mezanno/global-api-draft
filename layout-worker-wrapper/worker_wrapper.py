@@ -24,7 +24,14 @@ async def layout(
     print(f"image_url: {image_url}")
 
     async with httpx.AsyncClient() as client:
-        response = await client.get(image_url, timeout=10.0)
+        try:
+            response = await client.get(image_url, timeout=10.0)
+        except httpx.RequestError as exc:
+            return {
+                "message": f"An error occurred while requesting {exc.request.url!r}.",
+                "error": str(exc),
+            }
+
         if response.status_code == 200:
             # Debug output
             print(f"image downloaded: {len(response.content)} bytes")
