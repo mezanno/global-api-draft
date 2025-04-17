@@ -1,11 +1,37 @@
 import os
+import json
 
-# from pero_ocr_driver import PERO_driver
 
 from celery import Celery
 import cv2
 import requests
 import numpy as np
+
+from pero_ocr_driver import PERO_driver
+
+# FIXME use pydantic and make sure we have type declarations compatible with Python 3.9
+# class ImageRegion(BaseModel):
+#     xtl: float|int
+#     ytl: float|int
+#     xbr: float|int
+#     ybr: float|int
+# ImageRegionList: TypeAlias = list[ImageRegion]
+# ImageRegionListModel = TypeAdapter(ImageRegionList)
+
+# class LineTranscription(BaseModel):
+#     text: str
+#     confidence: float
+#     polygon: list[list[float]]
+#     line_id: int
+
+# class OCREngineInfo(BaseModel):
+#     name: str
+#     code_version: str
+#     model_version: str
+
+# class OCRResult(BaseModel):
+#     ocr_engine: OCREngineInfo
+#     lines: list[LineTranscription]
 
 # Celery configuration
 CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]  # 'amqp://rabbitmq:rabbitmq@rabbit:5672/'
@@ -14,7 +40,9 @@ CELERY_RESULT_BACKEND = os.environ["CELERY_RESULT_BACKEND"]  # 'rpc://'
 VALID_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 # PERO configuration
-# PERO_CONFIG_DIR = os.environ["PERO_CONFIG_DIR"]
+PERO_CONFIG_DIR = os.environ["PERO_CONFIG_DIR"]
+PERO_MODEL_VERSION = os.path.basename(PERO_CONFIG_DIR)
+PERO_CODE_VERSION = "Jul 21, 2023, https://github.com/jchazalon/pero-ocr/commit/223d5458c7e7a546a7ea3e3b69168d86b7057873"
 
 # Initialize Celery
 celery = Celery("worker", broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND) # 'ocr_worker', 
@@ -22,10 +50,17 @@ celery.config_from_object('celeryconfig')
 
 # Define our OCR task
 @celery.task()
-def run_ocr(image_url, image_regions):
+def run_ocr(image_url: str, image_regions: dict) -> dict:
+    print(f"Processing image: {image_url}")
 
-    ## FIXME take image url and regions as input
-    ## Parse and validate with Pydantic
+    bboxes_xyxy = []
+    for region in image_regions:
+        # Convert the region to a tuple of integers
+        bbox = tuple(map(lambda x: max(0, int(x)), [region[key] for key in ["xtl", "ytl", "xbr", "ybr"]]))
+        bboxes_xyxy.append(bbox)
+    # bboxes_xyxy = [(0, 0, 100, 100), (200, 200, 300, 300)]
+
+
 
     # use requests to download the image synchronously
     r = requests.get(image_url, timeout=10.0)
@@ -54,15 +89,32 @@ def run_ocr(image_url, image_regions):
         return {"error": "Request contains no image data."}
 
     # Fake response to test
-    return {
-        "image_url": image_url,
-        "image_regions": image_regions,
-        "image_shape": image_numpy.shape,
-    }
+    # return {
+    #     "image_url": image_url,
+    #     "image_regions": image_regions,
+    #     "image_shape": image_numpy.shape,
+    # }
+
+    # if the bboxes are empty, generate one with the full image
+    if len(bboxes_xyxy) == 0:
+        bboxes_xyxy = [(0, 0, image_numpy.shape[1], image_numpy.shape[0])]
 
 
-    # ocr_engine = PERO_driver(PERO_CONFIG_DIR)
-    # # TODO loop over image regions
-    # ocr_results = ocr_engine.detect_and_recognize(image_numpy)
+    # Run the OCR engine
+    print("Calling OCR engine...")
+    ocr_engine = PERO_driver(PERO_CONFIG_DIR)
+    ocr_results = ocr_engine.detect_and_recognize(image_numpy, bboxes_xyxy)
     # ocr_results = "\n".join([textline.transcription for textline in ocr_results])
-    # return {"content": ocr_results}
+    return {
+        "ocr_engine": {
+            "name": "PERO OCR",
+            "code_version": PERO_CODE_VERSION,
+            "model_version": PERO_MODEL_VERSION,
+        },
+        "transcriptions": [
+            {
+                "region": region,
+                "lines": lines
+            } for region, lines in zip(bboxes_xyxy, ocr_results)
+        ]
+    }

@@ -1211,7 +1211,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "celery", specifier = ">=5.5.1" },
-    { name = "pero-ocr", url = "https://github.com/jchazalon/pero-ocr/archive/refs/heads/master.zip" },
+    { name = "pero-ocr", git = "https://github.com/jchazalon/pero-ocr?rev=ab3371f3748fb4d4af08dbbcd961db17115dac97" },
     { name = "requests", specifier = ">=2.32.3" },
 ]
 
@@ -1244,7 +1244,7 @@ wheels = [
 [[package]]
 name = "pero-ocr"
 version = "0.6.1"
-source = { url = "https://github.com/jchazalon/pero-ocr/archive/refs/heads/master.zip" }
+source = { git = "https://github.com/jchazalon/pero-ocr?rev=ab3371f3748fb4d4af08dbbcd961db17115dac97#ab3371f3748fb4d4af08dbbcd961db17115dac97" }
 dependencies = [
     { name = "arabic-reshaper" },
     { name = "brnolm" },
@@ -1262,27 +1262,6 @@ dependencies = [
     { name = "scipy" },
     { name = "shapely" },
     { name = "torch" },
-]
-sdist = { url = "https://github.com/jchazalon/pero-ocr/archive/refs/heads/master.zip", hash = "sha256:cc181dc10e7089f4246601977c739e8843d1b280b067fe12a4b6d26a630cce75" }
-
-[package.metadata]
-requires-dist = [
-    { name = "arabic-reshaper" },
-    { name = "brnolm", specifier = ">=0.1.1" },
-    { name = "imgaug" },
-    { name = "levenshtein" },
-    { name = "lmdb" },
-    { name = "lxml" },
-    { name = "numba" },
-    { name = "numpy" },
-    { name = "opencv-python" },
-    { name = "pyamg" },
-    { name = "safe-gpu", specifier = ">=1.5" },
-    { name = "scikit-image" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "shapely", specifier = "==1.8" },
-    { name = "torch", specifier = ">=1.12" },
 ]
 
 [[package]]

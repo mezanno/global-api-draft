@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ---------------------------------------------------------------------
 # Then, add the rest of the project source code and install it
 # Installing separately from its dependencies allows optimal layer caching
-COPY celeryconfig.py main_api_ocr.py /app/
+COPY celeryconfig.py datatypes.py main_api_ocr.py /app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \

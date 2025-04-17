@@ -11,4 +11,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-pero-ocr = { url = "https://github.com/jchazalon/pero-ocr/archive/refs/heads/master.zip" }
+pero-ocr = { git = "https://github.com/jchazalon/pero-ocr" , rev = "ab3371f3748fb4d4af08dbbcd961db17115dac97"}

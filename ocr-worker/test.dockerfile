@@ -1,5 +1,10 @@
 FROM python:3.9-slim-bullseye
 
+# Base environment
+# ---------------------------------------------------------------------
+# ENV LC_ALL=C
+WORKDIR /app    
+
 
 # Install uv
 # ---------------------------------------------------------------------
@@ -18,6 +23,12 @@ RUN --mount=type=cache,target=/var/lib/apt/lists \
         libglib2.0-0
 #  --no-install-recommends
 
+# DEBUG necessary for uv to install via git
+RUN --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && \
+    apt-get install -y \
+        git
+
 # Python dependencies
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
@@ -31,6 +42,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-dev
 
+
+# Copy startup script
+# ---------------------------------------------------------------------
+    RUN --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update && \
+    apt-get install -y \
+        curl
+COPY --chmod=555 startup.sh /app/startup.sh
 
 
 # Install project files
@@ -49,18 +68,17 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
-# ENV LC_ALL=C
-WORKDIR /app
 
-# Declare volumes?
+# Declare volumes
 # ---------------------------------------------------------------------
 # torch cache and pero models path
-
+# VOLUME /root/.cache/torch
+VOLUME /data/pero_ocr
 
 # Configure runtime environment
 # ---------------------------------------------------------------------
 ENV C_FORCE_ROOT=1
-# ENV PERO_CONFIG_DIR=/data/pero_ocr/pero_eu_cz_print_newspapers_2020-10-07/
+ENV PERO_CONFIG_DIR=/data/pero_ocr/pero_eu_cz_print_newspapers_2022-09-26
 
-# Wrong CMD?
-CMD ["celery", "-A", "worker", "worker", "--loglevel=info" ]
+# Download models and start worker
+CMD ["sh", "-c", "startup.sh", "celery", "-A", "worker", "worker", "--loglevel=info" ]
