@@ -42,4 +42,30 @@ For now, the **layout service** is exposed directly (it is fast enough) from the
 
 The **OCR service** is different: it requires long tasks which are queued in a 2nd-stage API (Gradio), then distributed to workers (using Celery for now).
 
-## TODO
+## Deploy
+```shell
+01-docker_compose_build.sh
+02-docker_images_tag.sh
+
+docker image ls | grep mezanno
+# note the tag you want to use, e.g, v20250417-1230
+export MZN_TAG=???
+03-docker_image_save.sh $MZN_TAG
+
+# Copy images to server(s) --- should use some registry here
+export MZN_SRV=???
+ssh $MZN_SRV mkdir -p tmp/mezanno-images
+scp ~/tmp/mezanno-images/*.tar.gz $MZN_SRV:tmp/mezanno-images
+
+# Distribute among worker server
+# ...
+
+# Import images
+export MZN_WORKER_SRV=???
+parallel --tag ssh {} 'docker image ls' ::: $MZN_WORKER_SRV
+parallel --tag ssh {2} 'docker load < {1}' ::: tmp/mezanno-images/*-${MZN_TAG}.tar.gz ::: $MZN_WORKER_SRV
+
+```
+
+Then copy the docker swarm compose file, and run all the services.
+
