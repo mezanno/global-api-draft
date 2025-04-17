@@ -16,7 +16,7 @@
         # add more rules if needed for allowed services
         
         # reverse proxy
-        reverse_proxy worker-wrapper:8000
+        reverse_proxy layout-worker-wrapper:8000
     }
 
     route /ocr* {
