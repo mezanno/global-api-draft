@@ -2,11 +2,12 @@
 import configparser
 from functools import lru_cache
 import os
+from typing import List
 
 import numpy as np
 import cv2
 
-from pero_ocr.document_ocr.layout import PageLayout
+from pero_ocr.core.layout import PageLayout, TextLine
 from pero_ocr.document_ocr.page_parser import PageParser
 
 
@@ -74,8 +75,36 @@ class PERO_driver():
             # The real thing
             print(f"Processing image of size {crop.shape} with pero.")
             page_layout2 = self.page_parser.process_page(crop, page_layout)
-            lines = list(page_layout2.lines_iterator())
+            lines: List[TextLine] = list(page_layout2.lines_iterator())
             print(f"Found {len(lines)} lines.")
+
+            # The TextLine object contains the following attributes:
+            # - id
+            # - index
+            # - baseline
+            # - polygon
+            # - heights
+            # - transcription
+            # - logits
+            # - crop
+            # - characters
+            # - logit_coords
+            # - transcription_confidence
+
+            # Convert to a list of dictionaries
+            offset = np.array([tlx, tly])
+            lines = [
+                {
+                    "id": line.id,
+                    # "index": line.index,
+                    # "baseline": (line.baseline + offset).tolist(),
+                    "polygon": (line.polygon + offset).tolist(),
+                    # "heights": line.heights,
+                    "transcription": line.transcription,
+                    # "logits": line.logits,
+                    "transcription_confidence": line.transcription_confidence,
+                } for line in lines
+            ]
 
             line_lists.append(lines)
         return line_lists
@@ -208,3 +237,32 @@ class PERO_driver():
             final_images.append(padded)
             
         return final_images
+
+
+def main_test():
+    # Initialize the PERO_driver with a dummy config path
+     # Replace with a valid path for actual testing
+    config_path = os.path.realpath("./pero_model_cache/pero_eu_cz_print_newspapers_2022-09-26")
+    driver = PERO_driver(config_path)
+
+    # Read test image at "./tmp_test_data/default.webp" with opencv
+    image = cv2.imread("./tmp_test_data/default.webp")
+    if image is None:
+        raise ValueError("Cannot read test image.")
+    # Convert to RGB format
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # Define a bounding box covering the full image
+    bbox_list = [(0, 0, image.shape[1], image.shape[0])]
+
+    # Call the detect_and_recognize method
+    result = driver.detect_and_recognize(image, bbox_list)
+
+    # Assert that the result is a list (even if empty, it should be a list)
+    assert isinstance(result, list), "Result should be a list"
+
+    # Print the result for manual inspection (optional)
+    print(result)
+
+if __name__ == "__main__":
+    # Run the test function
+    main_test()
