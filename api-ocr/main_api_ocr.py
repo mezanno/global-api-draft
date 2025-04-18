@@ -168,7 +168,7 @@ def main():
 
     example0 = [ImageRegion(xtl=0.0, ytl=0.0, xbr=100.0, ybr=100.0), ImageRegion(xtl=0, ytl=0, xbr=150, ybr=150)]
     gradio_examples = [
-        ["https://picsum.photos/200/300", ImageRegionListModel.dump_json(example0)],
+        ["https://picsum.photos/200/300", ImageRegionListModel.dump_json(example0).decode("utf-8")],
         ["https://picsum.photos/200/300", '[{"xtl": 0.0, "ytl": 0.0, "xbr": 100.0, "ybr": 100.0}]'],
         ["https://picsum.photos/100", '[{"xtl": 0.5, "ytl": 0.6, "xbr": 0.7, "ybr": 0.8}]'],
         ["https://cache.mezanno.xyz/openapi.bnf.fr/iiif/image/v3/ark:/12148/bd6t543045578/f5/full/max/0/default.webp",
