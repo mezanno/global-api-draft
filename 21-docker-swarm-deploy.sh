@@ -44,10 +44,14 @@ export TAG
 # Login to the local registry
 echo -n "admin" | docker login --username admin --password-stdin ${REGISTRY}
 
+
 # if debug
 if [ "$DEBUG" ]; then
     # Display the substitued values in the config file for debugging
-    docker stack config -c docker-compose-swarm.yml
+    docker stack config -c docker-compose-swarm.yml | tee docker-compose-swarm-debug.yml
+    
+    echo "Deploying the stack with debug configuration: docker-compose-swarm-debug.yml"
+    docker stack deploy -c docker-compose-swarm.yml --with-registry-auth --resolve-image always --prune mezanno-api
 else
     echo "Deploying the stack..."
     # Real command to deploy the stack
