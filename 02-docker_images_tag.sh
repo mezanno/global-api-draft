@@ -3,9 +3,10 @@
 # Images are built locally
 
 TIMESTAMP=$(date +%Y%m%d-%H%M)
+REGISTRY=localhost:5000
 
 SERVICES="api-gateway cache layout-worker-wrapper layout-worker api-ocr ocr-worker"
 
 for service in $SERVICES ; do
-    docker image tag testfull-${service}:latest mezanno-${service}:v${TIMESTAMP}
+    docker image tag testfull-${service}:latest ${REGISTRY}/mezanno-${service}:v${TIMESTAMP}
 done;

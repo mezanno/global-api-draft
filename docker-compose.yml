@@ -43,7 +43,6 @@ services:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
       - CELERY_RESULT_BACKEND=rpc://
       - GRADIO_CONCURRENCY_LIMIT=10
-      # FIXME check this backend works across multiple machines
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -52,8 +51,7 @@ services:
   ocr-worker:
     build:
       context: ocr-worker
-      dockerfile: test.dockerfile
-      # dockerfile: Dockerfile
+      dockerfile: Dockerfile
     command: /bin/sh -c '/app/startup.sh uv run celery --app=worker.celery worker --concurrency=1 -P threads --loglevel=INFO'
     environment: 
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
@@ -89,7 +87,3 @@ services:
 volumes:
   nginx-cache:
   pero-models:
-
-networks:
-  app-network:
-    driver: bridge
