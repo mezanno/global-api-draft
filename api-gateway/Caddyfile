@@ -1,4 +1,6 @@
 :80 {
+    # Default log to stderr
+    log
 
     route /favicon.ico {
         respond "" 204
