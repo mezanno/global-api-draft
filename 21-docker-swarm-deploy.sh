@@ -51,5 +51,5 @@ if [ "$DEBUG" ]; then
 else
     echo "Deploying the stack..."
     # Real command to deploy the stack
-    echo docker stack deploy -c docker-compose-swarm.yml --with-registry-auth --resolve-image always --prune
+    docker stack deploy -c docker-compose-swarm.yml --with-registry-auth --resolve-image always --prune
 fi
