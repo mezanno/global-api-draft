@@ -35,6 +35,7 @@ services:
     ports:
       - "8204:8000"
     environment:
+      - GRADIO_DEBUG=True
       - GRADIO_SERVER_PORT=8000
       - GRADIO_SERVER_NAME=0.0.0.0
       - GRADIO_ROOT_PATH=/ocr

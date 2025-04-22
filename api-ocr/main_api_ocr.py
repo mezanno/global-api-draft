@@ -120,6 +120,8 @@ class OCRProxy:
 
 def main():
     # Default configuration
+    GRADIO_DEBUG = os.environ.get("GRADIO_DEBUG", False)
+    GRADIO_DEBUG = True if GRADIO_DEBUG in ["True", "true", "1"] else False
     GRADIO_SERVER_PORT = os.environ.get("GRADIO_SERVER_PORT", 7860)
     GRADIO_SERVER_NAME = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
     GRADIO_CONCURRENCY_LIMIT = os.environ.get("GRADIO_CONCURRENCY_LIMIT", 1)
@@ -132,6 +134,8 @@ def main():
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="PERO OCR worker proxy")
+    parser.add_argument("--gradio_debug", default=GRADIO_DEBUG, type=bool,
+                        help="Debug mode for Gradio")
     parser.add_argument("--gradio_concurrency_limit", default=GRADIO_CONCURRENCY_LIMIT, type=int,
                         help="Maximum number of this event that can be running simultaneously")
     parser.add_argument("--gradio_server_port", default=GRADIO_SERVER_PORT, type=int,
@@ -199,7 +203,7 @@ def main():
     logger.info(f"Task initial backoff: {args.task_initial_backoff_sec} seconds")
 
     # Launch the Gradio app
-    demo.launch(share=False, root_path=args.gradio_root_path, strict_cors=False)
+    demo.launch(share=False, root_path=args.gradio_root_path, strict_cors=False, debug=args.gradio_debug)
 
 if __name__ == "__main__":
     main()
