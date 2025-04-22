@@ -1,6 +1,6 @@
 #!/bin/bash
 
-REGISTRY="http://localhost:5000"
+REGISTRY="localhost:5000"
 export REGISTRY
 
 
