@@ -17,6 +17,16 @@
         uri query image_url ^https://openapi\.bnf\.fr/(.*) http://cache/openapi.bnf.fr/$1
         # add more rules if needed for allowed services
         
+        header {
+                Access-Control-Allow-Headers "*"
+                Access-Control-Allow-Methods "*"
+                Access-Control-Allow-Origin "*"
+        }
+        @options {
+                method OPTIONS
+        }
+        respond @options 204
+        
         # reverse proxy
         reverse_proxy layout-worker-wrapper:8000
     }
