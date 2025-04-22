@@ -199,7 +199,7 @@ def main():
     logger.info(f"Task initial backoff: {args.task_initial_backoff_sec} seconds")
 
     # Launch the Gradio app
-    demo.launch(share=False, root_path=args.gradio_root_path)
+    demo.launch(share=False, root_path=args.gradio_root_path, strict_cors=False)
 
 if __name__ == "__main__":
     main()
