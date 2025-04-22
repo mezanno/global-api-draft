@@ -58,6 +58,9 @@ class OCRProxy:
     async def transcribe(self, image_url: AnyHttpUrl, regions: str) -> OCRAPIAnswer:
         """Forwards request to task queue, and returns results when they are ready."""
         # regions is a json string which must be parsed as a list of ImageRegion
+        
+        # Log request
+        logger.info(f"Received request to transcribe image: {image_url} with regions: {regions}")
 
         # Validate `image_url` input by parsing it with Pydantic
         try:
@@ -87,6 +90,11 @@ class OCRProxy:
             return OCRAPIAnswer(
                 error=f"Invalid regions format: {e}"
             ).model_dump()
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid regions format for '{regions}'")
+            return OCRAPIAnswer(
+                error=f"Invalid regions format: {e}"
+            ).model_dump()
         
         r = self._celeryapp.send_task('worker.run_ocr', args=(image_url, regions,))
         task_id = r.id
@@ -109,10 +117,10 @@ class OCRProxy:
             backoff = min(backoff * 2, self._task_timeout_sec/10)  # Exponential backoff with a cap
         
         # Timeout
-        print(f"Timeout waiting for task {task_id} after {self._task_timeout_sec} seconds.")
+        logger.error(f"Timeout waiting for task {task_id} after {self._task_timeout_sec} seconds.")
         # Cancel the task
         self._celeryapp.control.revoke(task_id, terminate=True) # signal='SIGKILL'
-        print(f"Task {task_id} cancelled because of timeout after {self._task_timeout_sec} seconds.")
+        logger.error(f"Task {task_id} cancelled because of timeout after {self._task_timeout_sec} seconds.")
         return OCRAPIAnswer(
             error=f"Timeout waiting for task {task_id} after {self._task_timeout_sec} seconds."
         ).model_dump()
