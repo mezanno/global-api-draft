@@ -23,11 +23,11 @@ services:
     ports:
       - "8203:8000"
     deploy:
-      replicas: 3
+      replicas: 8
       placement:
         constraints:
           - node.role == worker
-        max_replicas_per_node: 1
+        max_replicas_per_node: 2
 
   api-ocr:
     image: ${REGISTRY}/mezanno-api-ocr:${TAG}
@@ -55,11 +55,11 @@ services:
     volumes:
       - pero-models:/data/pero_ocr
     deploy:
-      replicas: 6
+      replicas: 8
       placement:
         constraints:
           - node.role == worker
-        max_replicas_per_node: 1
+        max_replicas_per_node: 2
 
   rabbitmq:
     image: rabbitmq:3.7.8
