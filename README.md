@@ -25,7 +25,18 @@ docker compose up
 - **Layout analysis (async via Celery)**  
   - Enqueue: `GET http://127.0.0.1:8200/layout?image_url=...` → returns `{"task_id": "..."}`.  
   - Poll result: `GET http://127.0.0.1:8200/layout/result?task_id=...`.
-  - Internally routed to the `layout` Celery queue and processed by `layout-celery-worker`, which calls the C++ `layout-worker` service.
+  - Internally routed to the `layout` Celery queue and processed by the **layout-worker sidecar**, which calls the co-located C++ `layout-worker` server.
+
+## Breaking change: layout is now async (polling)
+
+`GET /layout` no longer returns the layout JSON synchronously.
+
+Updated contract:
+
+- Before: `GET /layout?...` returned the layout JSON directly.
+- Now:
+  - `GET /layout?...` returns `{"task_id": "..."}`.
+  - Clients must retrieve the actual layout via `GET /layout/result?task_id=...` (poll until `ready: true`, then read `result` or `error`).
 
 - **OCR (async via Gradio + Celery)**  
   - UI and HTTP API exposed at `http://127.0.0.1:8200/ocr` (Gradio app in `api-ocr`).  
@@ -53,7 +64,7 @@ flowchart LR
 
   gateway -->|/layout| layoutApi[layout-worker-wrapper]
   layoutApi -->|enqueue layout.run_layout\nqueue=layout| broker[(rabbitmq)]
-  broker -->|consume queue=layout| layoutCelery[layout-celery-worker]
+  broker -->|consume queue=layout| layoutCelery[layout-worker sidecar Celery]
   layoutCelery -->|POST /imgproc/layout| layoutSrv[layout-worker]
   layoutCelery -->|result rpc://| resultBackend[(celery_result_backend)]
   layoutApi -->|poll task state/result| resultBackend
@@ -89,15 +100,11 @@ flowchart LR
     - `GET /layout/result` → polls Celery and returns `{state, ready, result|error}`.  
   - Does **not** run heavy computation itself; just orchestrates Celery.
 
-- **Layout C++ worker (`layout-worker`)**  
-  - C++ image-processing server (directory-annotator-back).  
-  - Exposes `POST /imgproc/layout` and returns JSON layout information.  
-  - Called by `layout-celery-worker` tasks.
-
-- **Layout Celery worker (`layout-celery-worker`)**  
-  - Python Celery worker that:
+- **Layout worker sidecar (`layout-worker`)**  
+  - Runs the C++ image-processing server (directory-annotator-back) exposing `POST /imgproc/layout`.  
+  - Runs a co-located Python Celery worker that:
     - Downloads the image from `image_url`.  
-    - `POST`s bytes to `http://layout-worker:8000/imgproc/layout`.  
+    - `POST`s bytes to `http://127.0.0.1:8000/imgproc/layout`.  
     - Returns the JSON layout response to Celery clients.  
   - Listens on the `layout` queue only.
 

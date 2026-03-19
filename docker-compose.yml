@@ -30,16 +30,10 @@ services:
   
   layout-worker:
     build:
-      context: layout-worker
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: layout-worker-sidecar/Dockerfile
     ports:
       - "8203:8000"
-
-  layout-celery-worker:
-    build:
-      context: layout-celery-worker
-      dockerfile: Dockerfile
-    command: ["celery", "--app=worker.celery", "worker", "-Q", "layout", "--concurrency=1", "--loglevel=INFO"]
     environment:
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
       - CELERY_RESULT_BACKEND=rpc://
