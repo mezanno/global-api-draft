@@ -128,6 +128,7 @@ flowchart LR
 ## Planned improvements
 
 - **Testing**: implement a solid automated test suite (unit + integration) for the API gateway, wrappers, Celery tasks, and deployment scripts.
+- **Security**: ensure image URLs are properly checked, and that we are safe againts malicious images.
 - **Server-side events service**: introduce a dedicated SSE/WebSocket/long-poll service so clients can receive real-time updates for long-running tasks without depending on Gradio or keeping HTTP requests open.
 - **Unified API contract**: ensure both layout analysis and OCR expose the same high-level API logic and response envelope (enqueue → task id, status, result, error).
 - **Caching**: improve the image caching service (e.g. cache policies, storage backends, cache invalidation and observability).
