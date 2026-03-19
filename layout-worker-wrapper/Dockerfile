@@ -11,7 +11,7 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy app code and data
-COPY worker_wrapper.py /app/
+COPY celeryconfig.py worker_wrapper.py /app/
 
 # Expose the port the app runs on
 EXPOSE 8000

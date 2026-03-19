@@ -22,8 +22,14 @@ docker compose up
 
 ## Use
 
-Sample URL
-`http://127.0.0.1:8200/layout?image_url=https://openapi.bnf.fr/iiif/image/v3/ark:/12148/bd6t543045578/f10/full/max/0/default.webp`
+- **Layout analysis (async via Celery)**  
+  - Enqueue: `GET http://127.0.0.1:8200/layout?image_url=...` → returns `{"task_id": "..."}`.  
+  - Poll result: `GET http://127.0.0.1:8200/layout/result?task_id=...`.
+  - Internally routed to the `layout` Celery queue and processed by `layout-celery-worker`, which calls the C++ `layout-worker` service.
+
+- **OCR (async via Gradio + Celery)**  
+  - UI and HTTP API exposed at `http://127.0.0.1:8200/ocr` (Gradio app in `api-ocr`).  
+  - Requests are forwarded to the `ocr` Celery queue and processed by `ocr-worker`.
 
 
 ## Clean-up
@@ -38,9 +44,88 @@ docker image rm \
 
 
 ## Architecture and notes
-For now, the **layout service** is exposed directly (it is fast enough) from the API Gateway. The layout worker could be scaled, but this required the distribution of the Docker image over machines (manual replication or use registry) to be compatible with Docker Swarm. The API Gateway rewrites requests to the layout service so it uses the image cache whenever possible.
 
-The **OCR service** is different: it requires long tasks which are queued in a 2nd-stage API (Gradio), then distributed to workers (using Celery for now).
+### High-level data flow
+
+```mermaid
+flowchart LR
+  client[Client] --> gateway[api-gateway]
+
+  gateway -->|/layout| layoutApi[layout-worker-wrapper]
+  layoutApi -->|enqueue layout.run_layout\nqueue=layout| broker[(rabbitmq)]
+  broker -->|consume queue=layout| layoutCelery[layout-celery-worker]
+  layoutCelery -->|POST /imgproc/layout| layoutSrv[layout-worker]
+  layoutCelery -->|result rpc://| resultBackend[(celery_result_backend)]
+  layoutApi -->|poll task state/result| resultBackend
+
+  gateway -->|/ocr| ocrApi[api-ocr]
+  ocrApi -->|enqueue ocr.run_ocr\nqueue=ocr| broker
+  broker -->|consume queue=ocr| ocrWorker[ocr-worker]
+  ocrWorker -->|result rpc://| resultBackend
+  ocrApi -->|wait/poll for result| resultBackend
+
+  gateway --> cache[cache]
+```
+
+- **API gateway (`api-gateway`)**  
+  - Caddy-based reverse proxy.  
+  - Routes `/layout` to `layout-worker-wrapper` and `/ocr` to `api-ocr`.  
+  - Rewrites allowed external `image_url` values to use the internal `cache` service when possible and blocks unsafe internal targets.
+
+- **Image cache (`cache`)**  
+  - Nginx-based HTTP cache for IIIF and similar image sources.  
+  - Used transparently by the gateway for known hosts (e.g. BnF IIIF).
+
+- **Task queue (`rabbitmq` + Celery)**  
+  - RabbitMQ as the Celery broker, `rpc://` as the result backend.  
+  - Two main queues:
+    - `ocr` for OCR tasks (`ocr.run_ocr`).  
+    - `layout` for layout analysis tasks (`layout.run_layout`).  
+  - Workers are started with `-Q ocr` or `-Q layout` so each pool can be scaled independently.
+
+- **Layout HTTP wrapper (`layout-worker-wrapper`)**  
+  - FastAPI application exposing:
+    - `GET /layout` → enqueues `layout.run_layout` (queue `layout`) and returns `{"task_id": ...}`.  
+    - `GET /layout/result` → polls Celery and returns `{state, ready, result|error}`.  
+  - Does **not** run heavy computation itself; just orchestrates Celery.
+
+- **Layout C++ worker (`layout-worker`)**  
+  - C++ image-processing server (directory-annotator-back).  
+  - Exposes `POST /imgproc/layout` and returns JSON layout information.  
+  - Called by `layout-celery-worker` tasks.
+
+- **Layout Celery worker (`layout-celery-worker`)**  
+  - Python Celery worker that:
+    - Downloads the image from `image_url`.  
+    - `POST`s bytes to `http://layout-worker:8000/imgproc/layout`.  
+    - Returns the JSON layout response to Celery clients.  
+  - Listens on the `layout` queue only.
+
+- **OCR API (`api-ocr`)**  
+  - Gradio-based HTTP API exposing `/ocr` with a simple UI and JSON API.  
+  - Uses a Celery `Celery` app pointing at RabbitMQ and enqueues `ocr.run_ocr` to the `ocr` queue.  
+  - Waits asynchronously for Celery results with exponential backoff and timeout.
+
+- **OCR worker (`ocr-worker`)**  
+  - Python Celery worker wrapping PERO OCR.  
+  - Task name `ocr.run_ocr`:
+    - Downloads the image.  
+    - Runs PERO OCR on specified regions (or the full page).  
+    - Returns structured JSON with engine metadata and line transcriptions.  
+  - Listens on the `ocr` queue only.
+
+- **Monitoring (`flower`)**  
+  - Celery Flower UI exposed on `http://127.0.0.1:8205`.  
+  - Lets you inspect workers, queues (`ocr`, `layout`), and task status.
+
+## Planned improvements
+
+- **Testing**: implement a solid automated test suite (unit + integration) for the API gateway, wrappers, Celery tasks, and deployment scripts.
+- **Server-side events service**: introduce a dedicated SSE/WebSocket/long-poll service so clients can receive real-time updates for long-running tasks without depending on Gradio or keeping HTTP requests open.
+- **Unified API contract**: ensure both layout analysis and OCR expose the same high-level API logic and response envelope (enqueue → task id, status, result, error).
+- **Caching**: improve the image caching service (e.g. cache policies, storage backends, cache invalidation and observability).
+- **Fair use limits**: add protections so a single client cannot saturate the task queue (rate limiting, per-client concurrency caps, and per-queue backpressure policies).
+- **Auth, metering, and billing**: enable client authentication, usage monitoring, quota/limit enforcement, priority balancing between clients, and eventually billing-friendly metrics.
 
 ## Deploy
 ```shell

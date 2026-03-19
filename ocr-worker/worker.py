@@ -49,7 +49,7 @@ celery = Celery("worker", broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEN
 celery.config_from_object('celeryconfig')
 
 # Define our OCR task
-@celery.task()
+@celery.task(name="ocr.run_ocr")
 def run_ocr(image_url: str, image_regions: dict) -> dict:
     print(f"Processing image: {image_url}")
 

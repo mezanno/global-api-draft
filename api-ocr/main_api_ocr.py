@@ -96,7 +96,7 @@ class OCRProxy:
                 error=f"Invalid regions format: {e}"
             ).model_dump()
         
-        r = self._celeryapp.send_task('worker.run_ocr', args=(image_url, regions,))
+        r = self._celeryapp.send_task("ocr.run_ocr", args=(image_url, regions,), queue="ocr")
         task_id = r.id
 
         # async wait loop

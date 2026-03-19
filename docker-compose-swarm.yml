@@ -17,11 +17,31 @@ services:
     image: ${REGISTRY}/mezanno-layout-worker-wrapper:${TAG}
     ports:
       - "8202:8000"
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
+      - CELERY_RESULT_BACKEND=rpc://
+    depends_on:
+      - rabbitmq
 
   layout-worker:
     image: ${REGISTRY}/mezanno-layout-worker:${TAG}
     ports:
       - "8203:8000"
+    deploy:
+      replicas: 8
+      placement:
+        constraints:
+          - node.role == worker
+        max_replicas_per_node: 2
+
+  layout-celery-worker:
+    image: ${REGISTRY}/mezanno-layout-celery-worker:${TAG}
+    command: ["celery", "--app=worker.celery", "worker", "-Q", "layout", "--concurrency=1", "--loglevel=INFO"]
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
+      - CELERY_RESULT_BACKEND=rpc://
+    depends_on:
+      - rabbitmq
     deploy:
       replicas: 8
       placement:
@@ -47,7 +67,7 @@ services:
 
   ocr-worker:
     image: ${REGISTRY}/mezanno-ocr-worker:${TAG}
-    command: /bin/sh -c '/app/startup.sh uv run celery --app=worker.celery worker --concurrency=1 -P threads --loglevel=INFO'
+    command: /bin/sh -c '/app/startup.sh uv run celery --app=worker.celery worker -Q ocr --concurrency=1 -P threads --loglevel=INFO'
     environment: 
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
       - CELERY_RESULT_BACKEND=rpc://

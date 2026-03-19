@@ -1,61 +1,57 @@
 from fastapi import FastAPI
+from fastapi import HTTPException
 import uvicorn
 import httpx
+import os
+
+from celery import Celery
+from celery.result import AsyncResult
 
 app = FastAPI()
 
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "amqp://guest:guest@rabbitmq:5672")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "rpc://")
+
+celeryapp = Celery(broker=CELERY_BROKER_URL, backend=CELERY_RESULT_BACKEND)
+celeryapp.config_from_object("celeryconfig", silent=True)
+
+
 @app.get("/layout")
-async def layout(
+async def layout_enqueue(
     image_url: str,
     auto_deskew: bool = False,
     auto_bg_removal: bool = True,
     auto_denoise: bool = True,
     text_x_height_pixels: int = -1,
-    # try_download_image: bool = False,
-    ):
-    """
-    Simple wrapper for the real layout service.
-    Download the image from the given URL and send it to the layout service.
-    Layout service will return the layout of the image as a JSON object.
-    We must send the image using a binary POST request.
-    """
+):
+    r = celeryapp.send_task(
+        "layout.run_layout",
+        kwargs={
+            "image_url": image_url,
+            "auto_deskew": auto_deskew,
+            "auto_bg_removal": auto_bg_removal,
+            "auto_denoise": auto_denoise,
+            "text_x_height_pixels": text_x_height_pixels,
+        },
+        queue="layout",
+    )
+    return {"task_id": r.id}
 
-    # Debug output
-    print(f"image_url: {image_url}")
 
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(image_url, timeout=10.0)
-        except httpx.RequestError as exc:
-            return {
-                "message": f"An error occurred while requesting {exc.request.url!r}.",
-                "error": str(exc),
-            }
+@app.get("/layout/result")
+async def layout_result(task_id: str):
+    if not task_id:
+        raise HTTPException(status_code=400, detail="task_id is required")
 
-        if response.status_code == 200:
-            # Debug output
-            print(f"image downloaded: {len(response.content)} bytes")
-            # Send the image to the layout service
-            layout_service_url = "http://layout-worker:8000/imgproc/layout"
-            layout_response = await client.post(
-                layout_service_url,
-                content=response.content,
-                # headers={"Content-Type": "application/octet-stream"},
-            )
-            if layout_response.status_code == 200:
-                return layout_response.json()
-            else:
-                return {
-                    "message": "layout server error",
-                    "status_code": layout_response.status_code,
-                    "content": layout_response.content,
-                    }
-        else:
-            return {
-                "message": "image server error",
-                "status_code": response.status_code,
-                "content": response.content,
-                }
+    result = AsyncResult(task_id, app=celeryapp)
+    payload: dict = {"task_id": task_id, "state": result.state, "ready": result.ready()}
+
+    if result.successful():
+        payload["result"] = result.get(timeout=0.1)
+    elif result.failed():
+        payload["error"] = str(result.result)
+
+    return payload
     
 
 
