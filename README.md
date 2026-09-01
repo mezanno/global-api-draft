@@ -77,3 +77,9 @@ Then copy the docker swarm compose file, and run all the services.
 ```shell
 docker stack deploy -c docker-compose-swarm.yml mezanno-api
 ```
+
+## Experimental async jobs spike
+
+A mock-first implementation of the planned async API (submission + SSE + result retrieval) is available in [`experimental/async-jobs-mock`](experimental/async-jobs-mock/README.md).
+It is intentionally isolated from the current Celery-backed services to validate API contracts, fairness logic, and SSE behavior before production cutover.
+For a practical frontend integration example in React, see [`experimental/async-jobs-mock/react-sample-client`](experimental/async-jobs-mock/react-sample-client/README.md).
