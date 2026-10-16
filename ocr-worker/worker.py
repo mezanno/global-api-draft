@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 
 
 from celery import Celery
@@ -38,6 +39,7 @@ CELERY_BROKER_URL = os.environ["CELERY_BROKER_URL"]  # 'amqp://rabbitmq:rabbitmq
 CELERY_RESULT_BACKEND = os.environ["CELERY_RESULT_BACKEND"]  # 'rpc://'
 
 VALID_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+logger = logging.getLogger(__name__)
 
 # PERO configuration
 PERO_CONFIG_DIR = os.environ["PERO_CONFIG_DIR"]
@@ -51,7 +53,7 @@ celery.config_from_object('celeryconfig')
 # Define our OCR task
 @celery.task()
 def run_ocr(image_url: str, image_regions: dict) -> dict:
-    print(f"Processing image: {image_url}")
+    logger.info("Processing image")
 
     bboxes_xyxy = []
     for region in image_regions:
@@ -64,13 +66,17 @@ def run_ocr(image_url: str, image_regions: dict) -> dict:
 
     # use requests to download the image synchronously
     r = requests.get(image_url, timeout=10.0)
+    raw_content_type = r.headers.get("Content-Type", "")
     if r.status_code != 200:
+        logger.warning("Image download rejected: HTTP status=%s, Content-Type=%r", r.status_code, raw_content_type)
         return {"error": "Cannot download image."}
     image_data = r.content
 
     # Check if the image data is None
     # or if the content type is not image/jpg
-    if r.headers.get('Content-Type') not in VALID_IMAGE_TYPES:
+    content_type = raw_content_type.split(";", 1)[0].strip().lower()
+    if content_type not in VALID_IMAGE_TYPES:
+        logger.warning("Image media type rejected: HTTP status=%s, Content-Type=%r", r.status_code, raw_content_type)
         return {"error": "Request does not contain a valid image. Valid types are: " + ", ".join(VALID_IMAGE_TYPES)}
     if image_data is None:
         return {"error": "Request contains no image data."}
@@ -79,6 +85,7 @@ def run_ocr(image_url: str, image_regions: dict) -> dict:
     # Beware of channels order
     image_numpy = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
     if image_numpy is None:
+        logger.warning("Image decoding failed: HTTP status=%s, Content-Type=%r", r.status_code, raw_content_type)
         return {"error": "Cannot open image."}
     # Convert the image to RGB format
     image_numpy = cv2.cvtColor(image_numpy, cv2.COLOR_BGR2RGB)

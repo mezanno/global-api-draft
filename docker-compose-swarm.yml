@@ -46,7 +46,7 @@ services:
       - rabbitmq
 
   ocr-worker:
-    image: ${REGISTRY}/mezanno-ocr-worker:${TAG}
+    image: ${REGISTRY}/mezanno-ocr-worker:v20261016-content-type@sha256:ca82a9e6fe9fb409abba31d0a5f64a7caf5313534f908eb09337d8efb4038109
     command: /bin/sh -c '/app/startup.sh uv run celery --app=worker.celery worker --concurrency=1 -P threads --loglevel=INFO'
     environment: 
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
